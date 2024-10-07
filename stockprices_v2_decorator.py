@@ -1,10 +1,23 @@
-
+# In Cloud Composer, add apache-airflow-providers-snowflake to PYPI Packages
 from airflow import DAG
+from airflow.models import Variable
 from airflow.decorators import task
-from airflow.utils.dates import days_ago
+from airflow.providers.snowflake.hooks.snowflake import SnowflakeHook
+
+from datetime import timedelta
+from datetime import datetime
+import snowflake.connector
 import requests
-import json
-import os
+
+def return_snowflake_conn():
+
+    # Initialize the SnowflakeHook
+    hook = SnowflakeHook(snowflake_conn_id='snowflake_conn')
+    
+    # Execute the query and fetch results
+    conn = hook.get_conn()
+    return conn.cursor()
+
 
 # Define default arguments for the DAG
 default_args = {
