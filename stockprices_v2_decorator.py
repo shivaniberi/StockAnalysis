@@ -16,38 +16,41 @@ default_args = {
 }
 
 # Initialize the DAG
-with DAG(
+dag = DAG(
     'homework_4_v2_decorator',
     default_args=default_args,
-    description='A simple DAG to fetch and process stock data using the @task decorator',
+    description='A simple DAG to fetch stock data and process it using @task decorator',
     schedule_interval='@daily',
     start_date=days_ago(1),
     catchup=False,
-) as dag:
+)
 
-    # Task 1: Fetch stock data from Alpha Vantage
-    @task()
-    def fetch_stock_data():
-        # Retrieve environment variables (set these in Airflow connections or environment variables)
-        api_key = os.getenv('VANTAGE_API_KEY')
-        symbol = 'MSFT'
-        url = f'https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol={symbol}&apikey={api_key}'
-        
-        # Make the API request
-        response = requests.get(url)
-        data = response.json()
-        return data
-
-    # Task 2: Process the data
-    @task()
-    def process_data(stock_data):
-        # Example processing: Extract close prices
-        time_series = stock_data.get('Time Series (Daily)', {})
-        processed_data = {date: details['4. close'] for date, details in time_series.items()}
-        
-        # Log the processed data or store it in Snowflake (as per your logic)
-        print(f"Processed Data: {json.dumps(processed_data, indent=2)}")
+# Task 1: Fetch stock data from Alpha Vantage using the @task decorator
+@task
+def extract():
+    # Retrieve environment variables (set these in Airflow connections or environment variables)
+    api_key = os.getenv('VANTAGE_API_KEY')
+    symbol = 'MSFT'
+    url = f'https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol={symbol}&apikey={api_key}'
     
-    # Define task dependencies using function calls
-    stock_data = fetch_stock_data()
-    process_data(stock_data)
+    # Make the API request
+    response = requests.get(url)
+    data = response.json()
+    
+    return data
+
+# Task 2: Process the data using the @task decorator
+@task
+def transform(stock_data: dict):
+    # Example processing: Extract close prices
+    time_series = stock_data.get('Time Series (Daily)', {})
+    processed_data = {date: details['4. close'] for date, details in time_series.items()}
+    
+    # Log the processed data or store it in Snowflake (as per your logic)
+    print(f"Processed Data: {json.dumps(processed_data, indent=2)}")
+    return processed_data
+
+# Define the task dependencies using the decorator functions
+with dag:
+    stock_data = extract()
+    transformed_data = transform(stock_data)
