@@ -21,7 +21,7 @@ dag = DAG(
     'stockprices_v2_decorator',
     default_args=default_args,
     description='A simple DAG to fetch stock data and process it using @task decorator with Snowflake',
-    schedule_interval='@daily',
+    schedule_interval='*/10 * * * *',  # Runs every 10 minutes
     start_date=days_ago(1),
     catchup=False,
 )
